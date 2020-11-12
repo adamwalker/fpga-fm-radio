@@ -65,6 +65,18 @@ cordic en cplxPart
 
     (c0 :> c1 :> c2 :> c3 :> c4 :> c5 :> c6 :> c7 :> Nil) = consts
 
+conj :: Num a => Complex a -> Complex a
+conj (x :+ y) = x :+ (-y)
+
+phaseDiff
+    :: HiddenClockResetEnable dom
+    => Signal dom Bool
+    -> Signal dom (Complex (SFixed 0 24))
+    -> Signal dom (Complex (SFixed 0 24))
+phaseDiff en x = x * fmap conj x'
+    where
+    x' = regEn undefined en x
+
 padRight :: Signed 8 -> Signed 24
 padRight x = unpack $ pack x ++# (0 :: BitVector 16)
 
@@ -88,6 +100,11 @@ theFilter en x = (finalValid, dat)
     dat
         = fmap (\x -> (slice d25 d18 . unSF . arg) x :+ 0)
         $ cordic finalValid
+        $ regEn undefined finalValid 
+        $ fmap (fmap unSF)
+        $ phaseDiff finalValid 
+        $ fmap (fmap (sf (SNat @ 24)))
+        $ regEn undefined finalValid 
         $ decimate (en .&&. en1 .&&. en2)
         $ decimate (en .&&. en1)
         $ decimate en 
