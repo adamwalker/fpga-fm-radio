@@ -44,10 +44,11 @@ theFilter
             Signal dom Bool, 
             Signal dom (Complex (BitVector 8))
         )
-theFilter en x = (en .&&. en1, dat)
+theFilter en x = (en .&&. en1 .&&. en2 .&&. en3, dat)
     where
     dat
         = fmap (fmap sliceHigh) 
+        $ decimate (en .&&. en1 .&&. en2)
         $ decimate (en .&&. en1)
         $ decimate en 
         $ fmap (fmap padRight) x
