@@ -48,6 +48,7 @@ theFilter en x = (en .&&. en1, dat)
     where
     dat
         = fmap (fmap sliceHigh) 
+        $ decimate (en .&&. en1)
         $ decimate en 
         $ fmap (fmap padRight) x
 
