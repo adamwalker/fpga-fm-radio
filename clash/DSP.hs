@@ -9,7 +9,7 @@ import Clash.DSP.Complex
 import Clash.DSP.FIRFilter
 
 coeffsHalfBand :: Vec 8 (Signed 25)
-coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**24)) [
+coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**24) . (* 1.3)) [
         4.103190651075981e-4,
         -2.230264832858829e-3,
         7.100791272333269e-3,
