@@ -8,8 +8,8 @@ import qualified Prelude
 import Clash.DSP.Complex
 import Clash.DSP.FIRFilter
 
-coeffsHalfBand :: Vec 8 (Signed 25)
-coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**24) . (* 1.3)) [
+coeffsHalfBand :: Vec 8 (Signed 18)
+coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**17) . (* 1.3)) [
         4.103190651075981e-4,
         -2.230264832858829e-3,
         7.100791272333269e-3,
@@ -26,6 +26,6 @@ theFilter
     -> Signal dom (Complex (Signed 8))
     -> Signal dom (Complex (BitVector 8))
 theFilter en dat 
-    = fmap (fmap (slice d31 d24 :: Signed 48 -> BitVector 8)) 
+    = fmap (fmap (slice d24 d17 :: Signed 48 -> BitVector 8)) 
     $ firSystolicHalfBand macPreAddRealComplexPipelined coeffsHalfBand en dat
 
