@@ -1,0 +1,7 @@
+resolver: lts-16.21
+
+packages: []
+
+extra-deps:
+- github: adamwalker/clash-utils
+  commit: 66db01ac057221820730baf01283f332ac3caebd
