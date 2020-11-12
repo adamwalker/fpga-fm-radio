@@ -201,8 +201,6 @@ xpm_fifo_async#(
 
 dspStream dspStream_inst (
     .clk(eth_tx_clk_i),
-    .rst(1'b0),
-    .clkEn(1'b1),
 
     //Samples in
     .iVld(vld),
