@@ -20,12 +20,27 @@ coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**17
         0.5 :: Double
     ]))
 
+decimate
+    :: HiddenClockResetEnable dom 
+    => Signal dom Bool 
+    -> Signal dom (Complex (Signed 24))
+    -> Signal dom (Complex (Signed 24))
+decimate en dat 
+    = fmap (fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24)))
+    $ firSystolicHalfBand macPreAddRealComplexPipelined coeffsHalfBand en dat
+
+padRight :: Signed 8 -> Signed 24
+padRight x = unpack $ pack x ++# (0 :: BitVector 16)
+
+sliceHigh :: Signed 24 -> BitVector 8
+sliceHigh = slice d23 d16
+
 theFilter
     :: HiddenClockResetEnable dom 
     => Signal dom Bool 
     -> Signal dom (Complex (Signed 8))
     -> Signal dom (Complex (BitVector 8))
-theFilter en dat 
-    = fmap (fmap (slice d24 d17 :: Signed 48 -> BitVector 8)) 
-    $ firSystolicHalfBand macPreAddRealComplexPipelined coeffsHalfBand en dat
-
+theFilter en x 
+    = fmap (fmap sliceHigh) 
+    $ decimate en 
+    $ fmap (fmap padRight) x
