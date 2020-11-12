@@ -36,10 +36,10 @@ dspStream' vld eof dat ready = unbundle headeredStream
     (wideVld, _, wideDat) = unbundle wideStream
 
     --Do the signal processing
-    filterDat = theFilter wideVld (toSample <$> wideDat)
+    (sampleValid, filterDat) = theFilter wideVld (toSample <$> wideDat)
 
     --Buffer up enough samples to fill up a packet
-    bufferedStream  = packetize @15 (pure 511) (bundle (wideVld, fromSample <$> filterDat)) narrowedReady
+    bufferedStream  = packetize @15 (pure 511) (bundle (sampleValid, fromSample <$> filterDat)) narrowedReady
     --Split the samples into 4 bit values for sending over ethernet
     (narrowedStream, narrowedReady) = narrowStream bufferedStream headeredReady
     --Append the Ethernet, IP and UDP headers

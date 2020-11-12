@@ -36,11 +36,24 @@ sliceHigh :: Signed 24 -> BitVector 8
 sliceHigh = slice d23 d16
 
 theFilter
-    :: HiddenClockResetEnable dom 
+    :: forall dom
+    .  HiddenClockResetEnable dom 
     => Signal dom Bool 
     -> Signal dom (Complex (Signed 8))
-    -> Signal dom (Complex (BitVector 8))
-theFilter en x 
-    = fmap (fmap sliceHigh) 
-    $ decimate en 
-    $ fmap (fmap padRight) x
+    -> (
+            Signal dom Bool, 
+            Signal dom (Complex (BitVector 8))
+        )
+theFilter en x = (en .&&. en1, dat)
+    where
+    dat
+        = fmap (fmap sliceHigh) 
+        $ decimate en 
+        $ fmap (fmap padRight) x
+
+    en1, en2, en3 :: Signal dom Bool
+    (en3 :> en2 :> en1 :> Nil) = sequenceA $ unpack <$> cntr
+        where
+        cntr :: Signal dom (BitVector 3)
+        cntr =  regEn 0 en (cntr + 1)
+
