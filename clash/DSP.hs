@@ -10,7 +10,7 @@ import Clash.DSP.FIRFilter
 import Clash.DSP.CORDIC
 
 coeffsHalfBand :: Vec 8 (Signed 18)
-coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**17) . (* 1.3)) [
+coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**17)) [
         4.103190651075981e-4,
         -2.230264832858829e-3,
         7.100791272333269e-3,
@@ -21,14 +21,40 @@ coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**17
         0.5 :: Double
     ]))
 
-decimate
+decimateComplex
     :: HiddenClockResetEnable dom 
     => Signal dom Bool 
     -> Signal dom (Complex (Signed 24))
     -> Signal dom (Complex (Signed 24))
-decimate en dat 
+decimateComplex en dat 
     = fmap (fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24)))
     $ firSystolicHalfBand macPreAddRealComplexPipelined coeffsHalfBand en dat
+
+-- | Real * Real multiply and accumulate with pre-add
+macPreAddRealReal 
+    :: (KnownNat a, KnownNat b, KnownNat c) 
+    => Signed a               -- ^ Real coefficient
+    -> Signed b               -- ^ Real input
+    -> Signed b               -- ^ Real input 2
+    -> Signed (a + b + c + 1) -- ^ Real accumulator in
+    -> Signed (a + b + c + 1) -- ^ Real accumulator out
+macPreAddRealReal c i1 i2 b = extend (c `mul'` (i1 `add'` i2)) + b
+    where
+    --Work around Clash issue #601
+    add' :: (KnownNat a, KnownNat b) => Signed a -> Signed b -> Signed ((Max a b) + 1)
+    add' a b = resize a + resize b
+
+    mul' :: (KnownNat a, KnownNat b) => Signed a -> Signed b -> Signed (a + b)
+    mul' a b = resize a * resize b
+
+decimateReal
+    :: HiddenClockResetEnable dom 
+    => Signal dom Bool 
+    -> Signal dom (Signed 24)
+    -> Signal dom (Signed 24)
+decimateReal en dat 
+    = fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24))
+    $ firSystolicHalfBand (const (\x y z w -> macPreAddRealReal <$> x <*> y <*> z <*> w)) coeffsHalfBand en dat
 
 consts' :: Vec 16 (SFixed 2 24)
 consts' = $(listToVecTH (Prelude.take 16 arctans))
@@ -89,16 +115,18 @@ theFilter en x = (en3, dat)
     where
 
     dat
-        = fmap (\x -> (slice d25 d18 . unSF . arg) x :+ 0)
+        = fmap ((:+ 0) . slice d23 d16)
+        $ decimateReal en3
+        $ fmap (unpack . slice d25 d2 . unSF . arg)
         $ cordic en3
         $ regEn undefined en3 
         $ fmap (fmap unSF)
         $ phaseDiff en3 
         $ fmap (fmap (sf (SNat @ 24)))
         $ regEn undefined en3 
-        $ decimate en2
-        $ decimate en1
-        $ decimate en 
+        $ decimateComplex en2
+        $ decimateComplex en1
+        $ decimateComplex en 
         $ fmap (fmap padRight) x
 
     en1, en2, en3 :: Signal dom Bool
