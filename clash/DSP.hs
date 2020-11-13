@@ -38,27 +38,26 @@ cordic
     => Signal dom Bool
     -> Signal dom (Complex (Signed 24))
     -> Signal dom (CordicState (Signed 24) (SFixed 2 24))
-cordic en cplxPart
-    = step 14 c7
-    $ step 12 c6
-    $ step 10 c5
-    $ step 8  c4
-    $ step 6  c3
-    $ step 4  c2
-    $ step 2  c1
-    $ step 0  c0
-    $ CordicState <$> cplxPart <*> pure (0 :: SFixed 2 24)
+cordic en cplxPart 
+    = foldl (flip step) initialState (zip (iterateI (+2) 0) consts)
     where 
 
-    step idx coeff = regEn undefined en . fmap (step' idx coeff)
+    initialState 
+        =   CordicState 
+        <$> cplxPart 
+        <*> pure (0 :: SFixed 2 24)
+
+    step (idx, coeff) = regEn undefined en . fmap (step' idx coeff)
         where
-        step' :: Index 16 -> Vec 2 (SFixed 2 24) -> CordicState (Signed 24) (SFixed 2 24) -> CordicState (Signed 24) (SFixed 2 24)
+        step' 
+            :: Index 16 
+            -> Vec 2 (SFixed 2 24) 
+            -> CordicState (Signed 24) (SFixed 2 24) 
+            -> CordicState (Signed 24) (SFixed 2 24)
         step' = cordicSteps (\(CordicState (_ :+ y) _) -> y < 0)
 
     consts :: Vec 8 (Vec 2 (SFixed 2 24))
     consts = unconcatI consts'
-
-    (c0 :> c1 :> c2 :> c3 :> c4 :> c5 :> c6 :> c7 :> Nil) = consts
 
 phaseDiff
     :: HiddenClockResetEnable dom
