@@ -109,13 +109,13 @@ theFilter
     -> Signal dom (Complex (Signed 8))
     -> (
             Signal dom Bool, 
-            Signal dom (Complex (BitVector 8))
+            Signal dom (BitVector 8)
         )
 theFilter en x = (en5, dat)
     where
 
     dat
-        = fmap ((:+ 0) . slice d23 d16)
+        = fmap (slice d23 d16)
         $ decimateReal en4
         $ decimateReal en3
         $ fmap (unpack . slice d25 d2 . unSF . arg)

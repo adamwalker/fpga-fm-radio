@@ -12,7 +12,7 @@ import DSP
 toSample :: Vec 4 (BitVector 4) -> Complex (Signed 8)
 toSample = bitCoerce . swapNibbles
 
-fromSample :: Complex (BitVector 8) -> Vec 4 (BitVector 4)
+fromSample :: BitVector 8 -> Vec 2 (BitVector 4)
 fromSample = swapNibbles . bitCoerce
 
 dspStream' 
@@ -39,7 +39,7 @@ dspStream' vld eof dat ready = unbundle headeredStream
     (sampleValid, filterDat) = theFilter wideVld (toSample <$> wideDat)
 
     --Buffer up enough samples to fill up a packet
-    bufferedStream  = packetize @15 (pure 511) (bundle (sampleValid, fromSample <$> filterDat)) narrowedReady
+    bufferedStream  = packetize @15 (pure 1023) (bundle (sampleValid, fromSample <$> filterDat)) narrowedReady
     --Split the samples into 4 bit values for sending over ethernet
     (narrowedStream, narrowedReady) = narrowStream bufferedStream headeredReady
     --Append the Ethernet, IP and UDP headers
