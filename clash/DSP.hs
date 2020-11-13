@@ -111,11 +111,12 @@ theFilter
             Signal dom Bool, 
             Signal dom (Complex (BitVector 8))
         )
-theFilter en x = (en3, dat)
+theFilter en x = (en4, dat)
     where
 
     dat
         = fmap ((:+ 0) . slice d23 d16)
+        $ decimateReal en4
         $ decimateReal en3
         $ fmap (unpack . slice d25 d2 . unSF . arg)
         $ cordic en3
@@ -129,9 +130,9 @@ theFilter en x = (en3, dat)
         $ decimateComplex en 
         $ fmap (fmap padRight) x
 
-    en1, en2, en3 :: Signal dom Bool
-    (en3 :> en2 :> en1 :> Nil) = postscanr (.&&.) en $ sequenceA $ unpack <$> cntr
+    en1, en2, en3, en4, en5 :: Signal dom Bool
+    (en5 :> en4 :> en3 :> en2 :> en1 :> Nil) = postscanr (.&&.) en $ sequenceA $ unpack <$> cntr
         where
-        cntr :: Signal dom (BitVector 3)
+        cntr :: Signal dom (BitVector 5)
         cntr =  regEn 0 en (cntr + 1)
 
