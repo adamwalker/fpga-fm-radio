@@ -39,26 +39,21 @@ cordic
     -> Signal dom (Complex (Signed 24))
     -> Signal dom (CordicState (Signed 24) (SFixed 2 24))
 cordic en cplxPart
-    = fmap (step 14 $ c7)
-    $ regEn undefined en
-    $ fmap (step 12 $ c6)
-    $ regEn undefined en
-    $ fmap (step 10 $ c5)
-    $ regEn undefined en
-    $ fmap (step 8  $ c4)
-    $ regEn undefined en
-    $ fmap (step 6  $ c3)
-    $ regEn undefined en
-    $ fmap (step 4  $ c2)
-    $ regEn undefined en
-    $ fmap (step 2  $ c1)
-    $ regEn undefined en
-    $ fmap (step 0  $ c0)
+    = step 14 c7
+    $ step 12 c6
+    $ step 10 c5
+    $ step 8  c4
+    $ step 6  c3
+    $ step 4  c2
+    $ step 2  c1
+    $ step 0  c0
     $ CordicState <$> cplxPart <*> pure (0 :: SFixed 2 24)
     where 
 
-    step :: Index 16 -> Vec 2 (SFixed 2 24) -> CordicState (Signed 24) (SFixed 2 24) -> CordicState (Signed 24) (SFixed 2 24)
-    step = cordicSteps (\(CordicState (_ :+ y) _) -> y < 0)
+    step idx coeff = regEn undefined en . fmap (step' idx coeff)
+        where
+        step' :: Index 16 -> Vec 2 (SFixed 2 24) -> CordicState (Signed 24) (SFixed 2 24) -> CordicState (Signed 24) (SFixed 2 24)
+        step' = cordicSteps (\(CordicState (_ :+ y) _) -> y < 0)
 
     consts :: Vec 8 (Vec 2 (SFixed 2 24))
     consts = unconcatI consts'
