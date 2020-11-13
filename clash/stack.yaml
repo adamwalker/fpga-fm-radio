@@ -5,3 +5,6 @@ packages: []
 extra-deps:
 - github: adamwalker/clash-utils
   commit: b71e46778eeedd016ee959d34dea2a35f470fb7b
+- clash-lib-1.2.5
+- clash-ghc-1.2.5
+- clash-prelude-1.2.5
