@@ -65,15 +65,12 @@ cordic en cplxPart
 
     (c0 :> c1 :> c2 :> c3 :> c4 :> c5 :> c6 :> c7 :> Nil) = consts
 
-conj :: Num a => Complex a -> Complex a
-conj (x :+ y) = x :+ (-y)
-
 phaseDiff
     :: HiddenClockResetEnable dom
     => Signal dom Bool
     -> Signal dom (Complex (SFixed 0 24))
     -> Signal dom (Complex (SFixed 0 24))
-phaseDiff en x = x * fmap conj x'
+phaseDiff en x = x * fmap conjugate x'
     where
     x' = regEn undefined en x
 
