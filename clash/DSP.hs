@@ -61,9 +61,11 @@ cordic en cplxPart
 
 phaseDiff
     :: HiddenClockResetEnable dom
+    => Num a
+    => NFDataX a
     => Signal dom Bool
-    -> Signal dom (Complex (SFixed 0 24))
-    -> Signal dom (Complex (SFixed 0 24))
+    -> Signal dom (Complex a)
+    -> Signal dom (Complex a)
 phaseDiff en x = x * fmap conjugate x'
     where
     x' = regEn undefined en x
