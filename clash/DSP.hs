@@ -111,7 +111,7 @@ theFilter
             Signal dom Bool, 
             Signal dom (Complex (BitVector 8))
         )
-theFilter en x = (en4, dat)
+theFilter en x = (en5, dat)
     where
 
     dat
