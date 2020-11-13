@@ -83,26 +83,24 @@ theFilter
             Signal dom Bool, 
             Signal dom (Complex (BitVector 8))
         )
-theFilter en x = (finalValid, dat)
+theFilter en x = (en3, dat)
     where
-
-    finalValid = en .&&. en1 .&&. en2 .&&. en3
 
     dat
         = fmap (\x -> (slice d25 d18 . unSF . arg) x :+ 0)
-        $ cordic finalValid
-        $ regEn undefined finalValid 
+        $ cordic en3
+        $ regEn undefined en3 
         $ fmap (fmap unSF)
-        $ phaseDiff finalValid 
+        $ phaseDiff en3 
         $ fmap (fmap (sf (SNat @ 24)))
-        $ regEn undefined finalValid 
-        $ decimate (en .&&. en1 .&&. en2)
-        $ decimate (en .&&. en1)
+        $ regEn undefined en3 
+        $ decimate en2
+        $ decimate en1
         $ decimate en 
         $ fmap (fmap padRight) x
 
     en1, en2, en3 :: Signal dom Bool
-    (en3 :> en2 :> en1 :> Nil) = sequenceA $ unpack <$> cntr
+    (en3 :> en2 :> en1 :> Nil) = postscanr (.&&.) en $ sequenceA $ unpack <$> cntr
         where
         cntr :: Signal dom (BitVector 3)
         cntr =  regEn 0 en (cntr + 1)
