@@ -38,14 +38,7 @@ macPreAddRealReal
     -> Signed b               -- ^ Real input 2
     -> Signed (a + b + c + 1) -- ^ Real accumulator in
     -> Signed (a + b + c + 1) -- ^ Real accumulator out
-macPreAddRealReal c i1 i2 b = extend (c `mul'` (i1 `add'` i2)) + b
-    where
-    --Work around Clash issue #601
-    add' :: (KnownNat a, KnownNat b) => Signed a -> Signed b -> Signed ((Max a b) + 1)
-    add' a b = resize a + resize b
-
-    mul' :: (KnownNat a, KnownNat b) => Signed a -> Signed b -> Signed (a + b)
-    mul' a b = resize a * resize b
+macPreAddRealReal c i1 i2 b = extend (c `mul` (i1 `add` i2)) + b
 
 decimateReal
     :: HiddenClockResetEnable dom 
