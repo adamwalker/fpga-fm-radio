@@ -25,24 +25,24 @@ coeffsHalfBand = $(listToVecTH [
 macPreAddRealComplexPipelined'
     :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
     => Signal dom Bool                               -- ^ Enable
-    -> Signal dom (Signed a)                         -- ^ Real coefficient
-    -> Signal dom (Complex (Signed b))               -- ^ Complex input
-    -> Signal dom (Complex (Signed b))               -- ^ Complex input 2
-    -> Signal dom (Complex (Signed (a + b + c + 1))) -- ^ Complex accumulator in
-    -> Signal dom (Complex (Signed (a + b + c + 1))) -- ^ Complex accumulator out
+    -> Signal dom (SFixed 1 a)                       -- ^ Real coefficient
+    -> Signal dom (Complex (SFixed 1 b))             -- ^ Complex input
+    -> Signal dom (Complex (SFixed 1 b))             -- ^ Complex input 2
+    -> Signal dom (Complex (SFixed (c + 2) (a + b))) -- ^ Complex accumulator in
+    -> Signal dom (Complex (SFixed (c + 2) (a + b))) -- ^ Complex accumulator out
 macPreAddRealComplexPipelined' en c i1 i2 accum 
     = liftA2 
         (:+) 
         (pipeline (realPart <$> i1) (realPart <$> i2) (realPart <$> accum)) 
         (pipeline (imagPart <$> i1) (imagPart <$> i2) (imagPart <$> accum))
     where
-    pipeline i1 i2 a
+    pipeline i1' i2' a
         = liftA2 (+) a
-        $ fmap extend 
+        $ fmap resizeF 
         $ regEn 0 en
         $ liftA2 mul c
         $ regEn 0 en 
-        $ liftA2 add i1 i2 
+        $ liftA2 add i1' i2' 
 
 decimateComplex
     :: HiddenClockResetEnable dom 
@@ -51,7 +51,9 @@ decimateComplex
     -> Signal dom (Complex (Signed 24))
 decimateComplex en dat 
     = fmap (fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24)))
-    $ firSystolicHalfBand macPreAddRealComplexPipelined' (map unSF coeffsHalfBand) en dat
+    $ fmap (fmap unSF)
+    $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en 
+    $ fmap (fmap (sf (SNat @ 23))) dat
 
 -- | Real * Real multiply and accumulate with pre-add
 macPreAddRealReal 
