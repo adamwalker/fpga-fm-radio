@@ -21,6 +21,26 @@ coeffsHalfBand = $(listToVecTH [
         0.5 :: Double
     ])
 
+-- | Real * Complex multiply and accumulate with pre add. Designed to use the intermediate pipeline registers in Xilinx DSP48s.
+macPreAddRealComplexPipelined'
+    :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
+    => Signal dom Bool                               -- ^ Enable
+    -> Signal dom (Signed a)                         -- ^ Real coefficient
+    -> Signal dom (Complex (Signed b))               -- ^ Complex input
+    -> Signal dom (Complex (Signed b))               -- ^ Complex input 2
+    -> Signal dom (Complex (Signed (a + b + c + 1))) -- ^ Complex accumulator in
+    -> Signal dom (Complex (Signed (a + b + c + 1))) -- ^ Complex accumulator out
+macPreAddRealComplexPipelined' en c i1 i2 accum = liftA2 (:+) a3 a4
+    where
+    a1 = regEn 0 en $ liftA2 add (realPart <$> i1) (realPart <$> i2)
+    a2 = regEn 0 en $ liftA2 add (imagPart <$> i1) (imagPart <$> i2)
+
+    m1 = fmap extend $ regEn 0 en $ liftA2 mul c a1
+    m2 = fmap extend $ regEn 0 en $ liftA2 mul c a2
+
+    a3 = liftA2 (+) m1 (realPart <$> accum)
+    a4 = liftA2 (+) m2 (imagPart <$> accum)
+
 decimateComplex
     :: HiddenClockResetEnable dom 
     => Signal dom Bool 
@@ -28,7 +48,7 @@ decimateComplex
     -> Signal dom (Complex (Signed 24))
 decimateComplex en dat 
     = fmap (fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24)))
-    $ firSystolicHalfBand macPreAddRealComplexPipelined (map unSF coeffsHalfBand) en dat
+    $ firSystolicHalfBand macPreAddRealComplexPipelined' (map unSF coeffsHalfBand) en dat
 
 -- | Real * Real multiply and accumulate with pre-add
 macPreAddRealReal 
