@@ -30,16 +30,19 @@ macPreAddRealComplexPipelined'
     -> Signal dom (Complex (Signed b))               -- ^ Complex input 2
     -> Signal dom (Complex (Signed (a + b + c + 1))) -- ^ Complex accumulator in
     -> Signal dom (Complex (Signed (a + b + c + 1))) -- ^ Complex accumulator out
-macPreAddRealComplexPipelined' en c i1 i2 accum = liftA2 (:+) a3 a4
+macPreAddRealComplexPipelined' en c i1 i2 accum 
+    = liftA2 
+        (:+) 
+        (pipeline (realPart <$> i1) (realPart <$> i2) (realPart <$> accum)) 
+        (pipeline (imagPart <$> i1) (imagPart <$> i2) (imagPart <$> accum))
     where
-    a1 = regEn 0 en $ liftA2 add (realPart <$> i1) (realPart <$> i2)
-    a2 = regEn 0 en $ liftA2 add (imagPart <$> i1) (imagPart <$> i2)
-
-    m1 = fmap extend $ regEn 0 en $ liftA2 mul c a1
-    m2 = fmap extend $ regEn 0 en $ liftA2 mul c a2
-
-    a3 = liftA2 (+) m1 (realPart <$> accum)
-    a4 = liftA2 (+) m2 (imagPart <$> accum)
+    pipeline i1 i2 a
+        = liftA2 (+) a
+        $ fmap extend 
+        $ regEn 0 en
+        $ liftA2 mul c
+        $ regEn 0 en 
+        $ liftA2 add i1 i2 
 
 decimateComplex
     :: HiddenClockResetEnable dom 
