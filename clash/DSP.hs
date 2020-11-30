@@ -9,8 +9,8 @@ import Clash.DSP.Complex
 import Clash.DSP.FIRFilter
 import Clash.DSP.CORDIC
 
-coeffsHalfBand :: Vec 8 (Signed 18)
-coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**17)) [
+coeffsHalfBand :: Vec 8 (SFixed 1 17)
+coeffsHalfBand = $(listToVecTH [
         4.103190651075981e-4,
         -2.230264832858829e-3,
         7.100791272333269e-3,
@@ -19,7 +19,7 @@ coeffsHalfBand = $(listToVecTH (Prelude.map ((round :: Double -> Int) . (* 2**17
         -9.010608634732692e-2,
         0.3126304219791297,
         0.5 :: Double
-    ]))
+    ])
 
 decimateComplex
     :: HiddenClockResetEnable dom 
@@ -28,7 +28,7 @@ decimateComplex
     -> Signal dom (Complex (Signed 24))
 decimateComplex en dat 
     = fmap (fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24)))
-    $ firSystolicHalfBand macPreAddRealComplexPipelined coeffsHalfBand en dat
+    $ firSystolicHalfBand macPreAddRealComplexPipelined (map unSF coeffsHalfBand) en dat
 
 -- | Real * Real multiply and accumulate with pre-add
 macPreAddRealReal 
@@ -47,7 +47,7 @@ decimateReal
     -> Signal dom (Signed 24)
 decimateReal en dat 
     = fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24))
-    $ firSystolicHalfBand (const (\x y z w -> macPreAddRealReal <$> x <*> y <*> z <*> w)) coeffsHalfBand en dat
+    $ firSystolicHalfBand (const (\x y z w -> macPreAddRealReal <$> x <*> y <*> z <*> w)) (map unSF coeffsHalfBand) en dat
 
 consts' :: Vec 16 (SFixed 2 24)
 consts' = $(listToVecTH (Prelude.take 16 arctans))
