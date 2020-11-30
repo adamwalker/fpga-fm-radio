@@ -50,8 +50,7 @@ decimateComplex
     -> Signal dom (Complex (Signed 24))
     -> Signal dom (Complex (Signed 24))
 decimateComplex en dat 
-    = fmap (fmap (unpack . (slice d41 d18 :: Signed 43 -> BitVector 24)))
-    $ fmap (fmap unSF)
+    = fmap (fmap (unSF . (resizeF :: SFixed 3 40 -> SFixed 2 22)))
     $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en 
     $ fmap (fmap (sf (SNat @ 23))) dat
 
