@@ -92,9 +92,6 @@ phaseDiff en x = x * fmap conjugate x'
 padRight :: Signed 8 -> Signed 24
 padRight x = unpack $ pack x ++# (0 :: BitVector 16)
 
-sliceHigh :: Signed 24 -> BitVector 8
-sliceHigh = slice d23 d16
-
 theFilter
     :: forall dom
     .  HiddenClockResetEnable dom 
