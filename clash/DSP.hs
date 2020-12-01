@@ -33,16 +33,8 @@ macPreAddRealComplexPipelined'
 macPreAddRealComplexPipelined' en c i1 i2 accum 
     = liftA2 
         (:+) 
-        (pipeline (realPart <$> i1) (realPart <$> i2) (realPart <$> accum)) 
-        (pipeline (imagPart <$> i1) (imagPart <$> i2) (imagPart <$> accum))
-    where
-    pipeline i1' i2' a
-        = liftA2 (+) a
-        $ fmap resizeF 
-        $ regEn 0 en
-        $ liftA2 mul c
-        $ regEn 0 en 
-        $ liftA2 add i1' i2' 
+        (macPreAddRealReal en c (realPart <$> i1) (realPart <$> i2) (realPart <$> accum)) 
+        (macPreAddRealReal en c (imagPart <$> i1) (imagPart <$> i2) (imagPart <$> accum))
 
 decimateComplex
     :: HiddenClockResetEnable dom 
