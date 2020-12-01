@@ -127,7 +127,7 @@ theFilter en x = (en5, dat)
     where
 
     dat
-        = fmap (slice d23 d16 . unSF)
+        = fmap (pack . (resizeF :: SFixed 1 23 -> SFixed 1 7))
         $ decimateReal en4
         $ decimateReal en3
         $ fmap (unpack . slice d25 d2 . unSF . arg)
