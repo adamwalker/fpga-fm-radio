@@ -58,13 +58,20 @@ renorm = sf (SNat @ 23) . unSF
 
 -- | Real * Real multiply and accumulate with pre-add
 macPreAddRealReal 
-    :: (KnownNat a, KnownNat b, KnownNat c) 
-    => Signed a               -- ^ Real coefficient
-    -> Signed b               -- ^ Real input
-    -> Signed b               -- ^ Real input 2
-    -> Signed (a + b + c + 1) -- ^ Real accumulator in
-    -> Signed (a + b + c + 1) -- ^ Real accumulator out
-macPreAddRealReal c i1 i2 b = extend (c `mul` (i1 `add` i2)) + b
+    :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
+    => Signal dom Bool                     -- ^ Enable
+    -> Signal dom (Signed a)               -- ^ Real coefficient
+    -> Signal dom (Signed b)               -- ^ Real input
+    -> Signal dom (Signed b)               -- ^ Real input 2
+    -> Signal dom (Signed (a + b + c + 1)) -- ^ Real accumulator in
+    -> Signal dom (Signed (a + b + c + 1)) -- ^ Real accumulator out
+macPreAddRealReal en c i1 i2 a 
+    = liftA2 (+) a
+    $ fmap extend 
+    $ regEn 0 en
+    $ liftA2 mul c
+    $ regEn 0 en 
+    $ liftA2 add i1 i2 
 
 decimateReal
     :: HiddenClockResetEnable dom 
@@ -73,7 +80,7 @@ decimateReal
     -> Signal dom (Signed 24)
 decimateReal en dat 
     = fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24))
-    $ firSystolicHalfBand (const (\x y z w -> macPreAddRealReal <$> x <*> y <*> z <*> w)) (map unSF coeffsHalfBand) en dat
+    $ firSystolicHalfBand macPreAddRealReal (map unSF coeffsHalfBand) en dat
 
 consts' :: Vec 16 (SFixed 2 24)
 consts' = $(listToVecTH (Prelude.take 16 arctans))
