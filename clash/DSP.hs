@@ -60,14 +60,14 @@ renorm = sf (SNat @ 23) . unSF
 macPreAddRealReal 
     :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
     => Signal dom Bool                     -- ^ Enable
-    -> Signal dom (Signed a)               -- ^ Real coefficient
-    -> Signal dom (Signed b)               -- ^ Real input
-    -> Signal dom (Signed b)               -- ^ Real input 2
-    -> Signal dom (Signed (a + b + c + 1)) -- ^ Real accumulator in
-    -> Signal dom (Signed (a + b + c + 1)) -- ^ Real accumulator out
+    -> Signal dom (SFixed 1 a)             -- ^ Real coefficient
+    -> Signal dom (SFixed 1 b)             -- ^ Real input
+    -> Signal dom (SFixed 1 b)             -- ^ Real input 2
+    -> Signal dom (SFixed (c + 3) (a + b)) -- ^ Real accumulator in
+    -> Signal dom (SFixed (c + 3) (a + b)) -- ^ Real accumulator out
 macPreAddRealReal en c i1 i2 a 
     = liftA2 (+) a
-    $ fmap extend 
+    $ fmap resizeF 
     $ regEn 0 en
     $ liftA2 mul c
     $ regEn 0 en 
@@ -76,11 +76,11 @@ macPreAddRealReal en c i1 i2 a
 decimateReal
     :: HiddenClockResetEnable dom 
     => Signal dom Bool 
-    -> Signal dom (Signed 24)
-    -> Signal dom (Signed 24)
+    -> Signal dom (SFixed 1 23)
+    -> Signal dom (SFixed 1 23)
 decimateReal en dat 
-    = fmap (unpack . (slice d40 d17 :: Signed 48 -> BitVector 24))
-    $ firSystolicHalfBand macPreAddRealReal (map unSF coeffsHalfBand) en dat
+    = fmap (renorm . (resizeF :: SFixed 3 40 -> SFixed 2 22))
+    $ firSystolicHalfBand macPreAddRealReal coeffsHalfBand en dat
 
 consts' :: Vec 16 (SFixed 2 24)
 consts' = $(listToVecTH (Prelude.take 16 arctans))
@@ -135,7 +135,7 @@ theFilter en x = (en5, dat)
     where
 
     dat
-        = fmap (slice d23 d16)
+        = fmap (slice d23 d16 . unSF)
         $ decimateReal en4
         $ decimateReal en3
         $ fmap (unpack . slice d25 d2 . unSF . arg)
