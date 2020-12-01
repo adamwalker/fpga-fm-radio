@@ -137,7 +137,7 @@ theFilter en x = (en5, dat)
         $ regEn undefined en3 
         $ fmap (fmap unSF)
         $ phaseDiff en3 
-        $ fmap (fmap (sf (SNat @ 24)))
+        $ fmap (fmap (sf (SNat @ 23)))
         $ regEn undefined en3 
         $ decimateComplex en2
         $ decimateComplex en1
