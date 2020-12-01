@@ -62,8 +62,8 @@ decimateComplex en dat
     = fmap (fmap (renorm . (resizeF :: SFixed 3 40 -> SFixed 2 22)))
     $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en dat
 
-renorm :: SFixed 2 22 -> SFixed 1 23
-renorm = sf (SNat @ 23) . unSF 
+renorm :: forall n m. (KnownNat m, KnownNat n) => SFixed (1 + n) m -> SFixed 1 (n + m)
+renorm = sf (SNat @ (n + m)) . unSF 
 
 decimateReal
     :: HiddenClockResetEnable dom 
