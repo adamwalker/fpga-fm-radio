@@ -115,9 +115,6 @@ phaseDiff en x = x * fmap conjugate x'
     where
     x' = regEn undefined en x
 
-padRight :: Signed 8 -> Signed 24
-padRight x = unpack $ pack x ++# (0 :: BitVector 16)
-
 theFilter
     :: forall dom
     .  HiddenClockResetEnable dom 
@@ -143,8 +140,8 @@ theFilter en x = (en5, dat)
         $ decimateComplex en2
         $ decimateComplex en1
         $ decimateComplex en 
-        $ fmap (fmap (sf (SNat @ 23)))
-        $ fmap (fmap padRight) x
+        $ fmap (fmap (resizeF . sf (SNat @ 7)))
+        $ x
 
     en1, en2, en3, en4, en5 :: Signal dom Bool
     (en5 :> en4 :> en3 :> en2 :> en1 :> Nil) = postscanr (.&&.) en $ sequenceA $ unpack <$> cntr
