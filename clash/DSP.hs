@@ -21,6 +21,23 @@ coeffsHalfBand = $(listToVecTH [
         0.5 :: Double
     ])
 
+-- | Real * Real multiply and accumulate with pre-add
+macPreAddRealReal 
+    :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
+    => Signal dom Bool                     -- ^ Enable
+    -> Signal dom (SFixed 1 a)             -- ^ Real coefficient
+    -> Signal dom (SFixed 1 b)             -- ^ Real input
+    -> Signal dom (SFixed 1 b)             -- ^ Real input 2
+    -> Signal dom (SFixed (c + 3) (a + b)) -- ^ Real accumulator in
+    -> Signal dom (SFixed (c + 3) (a + b)) -- ^ Real accumulator out
+macPreAddRealReal en c i1 i2 a 
+    = liftA2 (+) a
+    $ fmap resizeF 
+    $ regEn 0 en
+    $ liftA2 mul c
+    $ regEn 0 en 
+    $ liftA2 add i1 i2 
+
 -- | Real * Complex multiply and accumulate with pre add. Designed to use the intermediate pipeline registers in Xilinx DSP48s.
 macPreAddRealComplexPipelined'
     :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
@@ -47,23 +64,6 @@ decimateComplex en dat
 
 renorm :: SFixed 2 22 -> SFixed 1 23
 renorm = sf (SNat @ 23) . unSF 
-
--- | Real * Real multiply and accumulate with pre-add
-macPreAddRealReal 
-    :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
-    => Signal dom Bool                     -- ^ Enable
-    -> Signal dom (SFixed 1 a)             -- ^ Real coefficient
-    -> Signal dom (SFixed 1 b)             -- ^ Real input
-    -> Signal dom (SFixed 1 b)             -- ^ Real input 2
-    -> Signal dom (SFixed (c + 3) (a + b)) -- ^ Real accumulator in
-    -> Signal dom (SFixed (c + 3) (a + b)) -- ^ Real accumulator out
-macPreAddRealReal en c i1 i2 a 
-    = liftA2 (+) a
-    $ fmap resizeF 
-    $ regEn 0 en
-    $ liftA2 mul c
-    $ regEn 0 en 
-    $ liftA2 add i1 i2 
 
 decimateReal
     :: HiddenClockResetEnable dom 
