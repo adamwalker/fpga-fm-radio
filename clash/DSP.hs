@@ -28,8 +28,8 @@ macPreAddRealComplexPipelined'
     -> Signal dom (SFixed 1 a)                       -- ^ Real coefficient
     -> Signal dom (Complex (SFixed 1 b))             -- ^ Complex input
     -> Signal dom (Complex (SFixed 1 b))             -- ^ Complex input 2
-    -> Signal dom (Complex (SFixed (c + 2) (a + b))) -- ^ Complex accumulator in
-    -> Signal dom (Complex (SFixed (c + 2) (a + b))) -- ^ Complex accumulator out
+    -> Signal dom (Complex (SFixed (c + 3) (a + b))) -- ^ Complex accumulator in
+    -> Signal dom (Complex (SFixed (c + 3) (a + b))) -- ^ Complex accumulator out
 macPreAddRealComplexPipelined' en c i1 i2 accum 
     = liftA2 
         (:+) 
@@ -50,7 +50,7 @@ decimateComplex
     -> Signal dom (Complex (SFixed 1 23))
     -> Signal dom (Complex (SFixed 1 23))
 decimateComplex en dat 
-    = fmap (fmap (renorm . (resizeF :: SFixed 2 40 -> SFixed 2 22)))
+    = fmap (fmap (renorm . (resizeF :: SFixed 3 40 -> SFixed 2 22)))
     $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en dat
 
 renorm :: SFixed 2 22 -> SFixed 1 23
