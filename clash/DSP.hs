@@ -80,8 +80,8 @@ consts' = $(listToVecTH (Prelude.take 16 arctans))
 cordic 
     :: HiddenClockResetEnable dom 
     => Signal dom Bool
-    -> Signal dom (Complex (Signed 24))
-    -> Signal dom (CordicState (Signed 24) (SFixed 2 24))
+    -> Signal dom (Complex (SFixed 1 23))
+    -> Signal dom (CordicState (SFixed 1 23) (SFixed 2 24))
 cordic en cplxPart 
     = foldl (flip step) initialState (zip (iterateI (+2) 0) consts)
     where 
@@ -96,8 +96,8 @@ cordic en cplxPart
         step' 
             :: Index 16 
             -> Vec 2 (SFixed 2 24) 
-            -> CordicState (Signed 24) (SFixed 2 24) 
-            -> CordicState (Signed 24) (SFixed 2 24)
+            -> CordicState (SFixed 1 23) (SFixed 2 24) 
+            -> CordicState (SFixed 1 23) (SFixed 2 24)
         step' = cordicSteps (\(CordicState (_ :+ y) _) -> y < 0)
 
     consts :: Vec 8 (Vec 2 (SFixed 2 24))
@@ -133,7 +133,6 @@ theFilter en x = (en5, dat)
         $ fmap (unpack . slice d25 d2 . unSF . arg)
         $ cordic en3
         $ regEn undefined en3 
-        $ fmap (fmap unSF)
         $ phaseDiff en3 
         $ regEn undefined en3 
         $ decimateComplex en2
