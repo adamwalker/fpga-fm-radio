@@ -47,12 +47,14 @@ macPreAddRealComplexPipelined' en c i1 i2 accum
 decimateComplex
     :: HiddenClockResetEnable dom 
     => Signal dom Bool 
-    -> Signal dom (Complex (Signed 24))
-    -> Signal dom (Complex (Signed 24))
+    -> Signal dom (Complex (SFixed 1 23))
+    -> Signal dom (Complex (SFixed 1 23))
 decimateComplex en dat 
-    = fmap (fmap (unSF . (resizeF :: SFixed 2 40 -> SFixed 2 22)))
-    $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en 
-    $ fmap (fmap (sf (SNat @ 23))) dat
+    = fmap (fmap (renorm . (resizeF :: SFixed 2 40 -> SFixed 2 22)))
+    $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en dat
+
+renorm :: SFixed 2 22 -> SFixed 1 23
+renorm = sf (SNat @ 23) . unSF 
 
 -- | Real * Real multiply and accumulate with pre-add
 macPreAddRealReal 
@@ -137,11 +139,11 @@ theFilter en x = (en5, dat)
         $ regEn undefined en3 
         $ fmap (fmap unSF)
         $ phaseDiff en3 
-        $ fmap (fmap (sf (SNat @ 23)))
         $ regEn undefined en3 
         $ decimateComplex en2
         $ decimateComplex en1
         $ decimateComplex en 
+        $ fmap (fmap (sf (SNat @ 23)))
         $ fmap (fmap padRight) x
 
     en1, en2, en3, en4, en5 :: Signal dom Bool
