@@ -74,14 +74,14 @@ decimateReal en dat
     = fmap (renorm . (resizeF :: SFixed 3 40 -> SFixed 2 22))
     $ firSystolicHalfBand macPreAddRealReal coeffsHalfBand en dat
 
-consts' :: Vec 16 (SFixed 2 24)
+consts' :: Vec 16 (SFixed 3 24)
 consts' = $(listToVecTH (Prelude.take 16 arctans))
 
 cordic 
     :: HiddenClockResetEnable dom 
     => Signal dom Bool
     -> Signal dom (Complex (SFixed 1 23))
-    -> Signal dom (CordicState (SFixed 1 23) (SFixed 2 24))
+    -> Signal dom (CordicState (SFixed 1 23) (SFixed 3 24))
 cordic en cplxPart 
     = foldl (flip step) initialState (zip (iterateI (+2) 0) consts)
     where 
@@ -89,18 +89,18 @@ cordic en cplxPart
     initialState 
         =   CordicState 
         <$> cplxPart 
-        <*> pure (0 :: SFixed 2 24)
+        <*> pure (0 :: SFixed 3 24)
 
     step (idx, coeff) = regEn undefined en . fmap (step' idx coeff)
         where
         step' 
             :: Index 16 
-            -> Vec 2 (SFixed 2 24) 
-            -> CordicState (SFixed 1 23) (SFixed 2 24) 
-            -> CordicState (SFixed 1 23) (SFixed 2 24)
+            -> Vec 2 (SFixed 3 24) 
+            -> CordicState (SFixed 1 23) (SFixed 3 24) 
+            -> CordicState (SFixed 1 23) (SFixed 3 24)
         step' = cordicSteps (\(CordicState (_ :+ y) _) -> y < 0)
 
-    consts :: Vec 8 (Vec 2 (SFixed 2 24))
+    consts :: Vec 8 (Vec 2 (SFixed 3 24))
     consts = unconcatI consts'
 
 phaseDiff
