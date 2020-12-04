@@ -48,10 +48,8 @@ macPreAddRealComplexPipelined'
     -> Signal dom (Complex (SFixed (c + 3) (a + b))) -- ^ Complex accumulator in
     -> Signal dom (Complex (SFixed (c + 3) (a + b))) -- ^ Complex accumulator out
 macPreAddRealComplexPipelined' en c i1 i2 accum 
-    = liftA2 
-        (:+) 
-        (macPreAddRealReal en c (realPart <$> i1) (realPart <$> i2) (realPart <$> accum)) 
-        (macPreAddRealReal en c (imagPart <$> i1) (imagPart <$> i2) (imagPart <$> accum))
+    = sequenceA 
+    $ liftA3 (macPreAddRealReal en c) (sequenceA i1) (sequenceA i2) (sequenceA accum)
 
 decimateComplex
     :: HiddenClockResetEnable dom 
