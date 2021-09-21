@@ -1,5 +1,5 @@
 module DSP (
-        theFilter
+        fmRadio
     ) where
 
 import Clash.Prelude
@@ -113,7 +113,7 @@ phaseDiff en x = x * fmap conjugate x'
     where
     x' = regEn undefined en x
 
-theFilter
+fmRadio
     :: forall dom
     .  HiddenClockResetEnable dom 
     => Signal dom Bool 
@@ -122,7 +122,7 @@ theFilter
             Signal dom Bool, 
             Signal dom (BitVector 8)
         )
-theFilter en x = (en5, dat)
+fmRadio en x = (en5, dat)
     where
 
     dat
