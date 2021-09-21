@@ -4,6 +4,7 @@ module DSP (
 
 import Clash.Prelude
 import qualified Prelude
+import Data.Function
 
 import Clash.DSP.Complex
 import Clash.DSP.FIR.FIRFilter
@@ -125,19 +126,19 @@ theFilter en x = (en5, dat)
     where
 
     dat
-        = fmap (pack . (resizeF :: SFixed 1 23 -> SFixed 1 7))
-        $ decimateReal en4
-        $ decimateReal en3
-        $ fmap (resizeF . renorm . arg)
-        $ cordic en3
-        $ regEn undefined en3 
-        $ phaseDiff en3 
-        $ regEn undefined en3 
-        $ decimateComplex en2
-        $ decimateComplex en1
-        $ decimateComplex en 
-        $ fmap (fmap (resizeF . sf (SNat @ 7)))
-        $ x
+        = x
+        & fmap (fmap (resizeF . sf (SNat @ 7)))
+        & decimateComplex en 
+        & decimateComplex en1
+        & decimateComplex en2
+        & regEn undefined en3 
+        & phaseDiff en3 
+        & regEn undefined en3 
+        & cordic en3
+        & fmap (resizeF . renorm . arg)
+        & decimateReal en3
+        & decimateReal en4
+        & fmap (pack . (resizeF :: SFixed 1 23 -> SFixed 1 7))
 
     en1, en2, en3, en4, en5 :: Signal dom Bool
     (en5 :> en4 :> en3 :> en2 :> en1 :> Nil) = postscanr (.&&.) en $ sequenceA $ unpack <$> cntr
