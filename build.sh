@@ -4,6 +4,7 @@ set -xe
 pushd clash
 stack exec clash -- --verilog sampleStream.hs
 popd
-cp clash/verilog/Main.dspStream/dspStream.v arty/src/dspStream.v
+mkdir -p arty/src/generated
+cp clash/verilog/Main.dspStream/* arty/src/generated
 pushd arty
 vivado -mode batch -nojournal -source compile.tcl

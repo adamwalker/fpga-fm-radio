@@ -12,6 +12,8 @@ create_project -part xc7a35ticsg324-1l -in_memory
 #Read the sources
 read_verilog -quiet [glob -nocomplain -directory src *.v]
 read_vhdl    -quiet [glob -nocomplain -directory src *.vhdl]
+read_verilog -quiet [glob -nocomplain -directory src/generated *.v]
+read_vhdl    -quiet [glob -nocomplain -directory src/generated *.vhdl]
 read_xdc src/arty.xdc
 
 #Enable xilinx XPM modules
