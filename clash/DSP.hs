@@ -6,7 +6,7 @@ import Clash.Prelude
 import qualified Prelude
 
 import Clash.DSP.Complex
-import Clash.DSP.FIRFilter
+import Clash.DSP.FIR.FIRFilter
 import Clash.DSP.CORDIC
 
 coeffsHalfBand :: Vec 8 (SFixed 1 17)
