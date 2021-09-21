@@ -82,7 +82,7 @@ cordic
     -> Signal dom (Complex (SFixed 1 23))
     -> Signal dom (CordicState (SFixed 1 23) (SFixed 3 24))
 cordic en cplxPart 
-    = foldl (flip step) initialState (zip (iterateI (+2) 0) consts)
+    = cordicPipeline dir (0 :: Index 16) consts en initialState
     where 
 
     initialState 
@@ -90,14 +90,7 @@ cordic en cplxPart
         <$> cplxPart 
         <*> pure (0 :: SFixed 3 24)
 
-    step (idx, coeff) = regEn undefined en . fmap (step' idx coeff)
-        where
-        step' 
-            :: Index 16 
-            -> Vec 2 (SFixed 3 24) 
-            -> CordicState (SFixed 1 23) (SFixed 3 24) 
-            -> CordicState (SFixed 1 23) (SFixed 3 24)
-        step' = cordicSteps (\(CordicState (_ :+ y) _) -> y < 0)
+    dir (CordicState (_ :+ y) _) = y < 0
 
     consts :: Vec 8 (Vec 2 (SFixed 3 24))
     consts = unconcatI consts'
