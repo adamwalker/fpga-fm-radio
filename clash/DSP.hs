@@ -7,6 +7,7 @@ import qualified Prelude
 import Data.Function
 
 import Clash.DSP.Complex
+import Clash.DSP.MAC
 import Clash.DSP.FIR.Filter
 import Clash.DSP.CORDIC
 
@@ -23,15 +24,10 @@ coeffsHalfBand = $(listToVecTH [
     ])
 
 -- | Real * Real multiply and accumulate with pre-add
-macPreAddRealReal 
+macPreAddRealReal' 
     :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
-    => Signal dom Bool                     -- ^ Enable
-    -> Signal dom (SFixed 1 a)             -- ^ Real coefficient
-    -> Signal dom (SFixed 1 b)             -- ^ Real input
-    -> Signal dom (SFixed 1 b)             -- ^ Real input 2
-    -> Signal dom (SFixed (c + 3) (a + b)) -- ^ Real accumulator in
-    -> Signal dom (SFixed (c + 3) (a + b)) -- ^ Real accumulator out
-macPreAddRealReal en c i1 i2 a 
+    => MACPreAdd dom (SFixed 1 a) (SFixed 1 b) (SFixed (c + 3) (a + b))
+macPreAddRealReal' en c i1 i2 a 
     = liftA2 (+) a
     $ fmap resizeF 
     $ regEn 0 en
@@ -42,15 +38,10 @@ macPreAddRealReal en c i1 i2 a
 -- | Real * Complex multiply and accumulate with pre add. Designed to use the intermediate pipeline registers in Xilinx DSP48s.
 macPreAddRealComplexPipelined'
     :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
-    => Signal dom Bool                               -- ^ Enable
-    -> Signal dom (SFixed 1 a)                       -- ^ Real coefficient
-    -> Signal dom (Complex (SFixed 1 b))             -- ^ Complex input
-    -> Signal dom (Complex (SFixed 1 b))             -- ^ Complex input 2
-    -> Signal dom (Complex (SFixed (c + 3) (a + b))) -- ^ Complex accumulator in
-    -> Signal dom (Complex (SFixed (c + 3) (a + b))) -- ^ Complex accumulator out
+    => MACPreAdd dom (SFixed 1 a) (Complex (SFixed 1 b)) (Complex (SFixed (c + 3) (a + b)))
 macPreAddRealComplexPipelined' en c i1 i2 accum 
     = sequenceA 
-    $ liftA3 (macPreAddRealReal en c) (sequenceA i1) (sequenceA i2) (sequenceA accum)
+    $ liftA3 (macPreAddRealReal' en c) (sequenceA i1) (sequenceA i2) (sequenceA accum)
 
 decimateComplex
     :: HiddenClockResetEnable dom 
@@ -71,7 +62,7 @@ decimateReal
     -> Signal dom (SFixed 1 23)
 decimateReal en dat 
     = fmap (renorm . (resizeF :: SFixed 3 40 -> SFixed 2 22))
-    $ firSystolicHalfBand macPreAddRealReal coeffsHalfBand en dat
+    $ firSystolicHalfBand macPreAddRealReal' coeffsHalfBand en dat
 
 consts' :: Vec 16 (SFixed 3 24)
 consts' = $(listToVecTH (Prelude.take 16 arctans))
