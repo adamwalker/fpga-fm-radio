@@ -7,7 +7,7 @@ import qualified Prelude
 import Data.Function
 
 import Clash.DSP.Complex
-import Clash.DSP.FIR.FIRFilter
+import Clash.DSP.FIR.Filter
 import Clash.DSP.CORDIC
 
 coeffsHalfBand :: Vec 8 (SFixed 1 17)
@@ -62,7 +62,7 @@ decimateComplex en dat
     $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en dat
 
 renorm :: forall n m. (KnownNat m, KnownNat n) => SFixed (1 + n) m -> SFixed 1 (n + m)
-renorm = sf (SNat @ (n + m)) . unSF 
+renorm = sf (SNat @(n + m)) . unSF 
 
 decimateReal
     :: HiddenClockResetEnable dom 
@@ -120,7 +120,7 @@ fmRadio en x = (en5, dat)
 
     dat
         = x
-        & fmap (fmap (resizeF . sf (SNat @ 7)))
+        & fmap (fmap (resizeF . sf (SNat @7)))
         & decimateComplex en 
         & decimateComplex en1
         & decimateComplex en2

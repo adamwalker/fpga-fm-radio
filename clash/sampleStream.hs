@@ -29,7 +29,7 @@ dspStream'
 dspStream' vld eof dat ready = unbundle headeredStream
     where
     --Drop the Ethernet, IP and UDP headers
-    noHeaderStream        = dropStream (SNat @ 84) $ bundle (vld, eof, dat)
+    noHeaderStream        = dropStream (SNat @84) $ bundle (vld, eof, dat)
     --Widen the stream from a single 4 bit value to 16 bits (enough to store a complex number with 8 bit parts)
     (wideStream, _)       = widenStream noHeaderStream (pure True)
     --Pull out the vald and data signals
