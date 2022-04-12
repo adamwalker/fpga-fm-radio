@@ -82,15 +82,13 @@ cordic
     -> Signal dom (Complex (SFixed 1 23))
     -> Signal dom (CordicState (SFixed 1 23) (SFixed 3 24))
 cordic en cplxPart 
-    = cordicPipeline dir (0 :: Index 16) consts en initialState
+    = cordicPipeline dirMagPhase (0 :: Index 16) consts en initialState
     where 
 
     initialState 
         =   CordicState 
         <$> cplxPart 
         <*> pure (0 :: SFixed 3 24)
-
-    dir (CordicState (_ :+ y) _) = y < 0
 
     consts :: Vec 8 (Vec 2 (SFixed 3 24))
     consts = unconcatI consts'
