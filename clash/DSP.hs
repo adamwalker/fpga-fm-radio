@@ -5,6 +5,7 @@ module DSP (
 import Clash.Prelude
 import qualified Prelude
 import Data.Function
+import Data.Coerce
 
 import Clash.DSP.Complex
 import Clash.DSP.MAC
@@ -27,21 +28,13 @@ coeffsHalfBand = $(listToVecTH [
 macPreAddRealReal' 
     :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
     => MACPreAdd dom (SFixed 1 a) (SFixed 1 b) (SFixed (c + 3) (a + b))
-macPreAddRealReal' en c i1 i2 a 
-    = liftA2 (+) a
-    $ fmap resizeF 
-    $ regEn 0 en
-    $ liftA2 mul c
-    $ regEn 0 en 
-    $ liftA2 add i1 i2 
+macPreAddRealReal' = coerce macPreAddRealRealPipelined
 
 -- | Real * Complex multiply and accumulate with pre add. Designed to use the intermediate pipeline registers in Xilinx DSP48s.
 macPreAddRealComplexPipelined'
     :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
     => MACPreAdd dom (SFixed 1 a) (Complex (SFixed 1 b)) (Complex (SFixed (c + 3) (a + b)))
-macPreAddRealComplexPipelined' en c i1 i2 accum 
-    = sequenceA 
-    $ liftA3 (macPreAddRealReal' en c) (sequenceA i1) (sequenceA i2) (sequenceA accum)
+macPreAddRealComplexPipelined' = coerce macPreAddRealComplexPipelined
 
 decimateComplex
     :: HiddenClockResetEnable dom 
