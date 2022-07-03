@@ -12,15 +12,19 @@ import Clash.DSP.MAC
 import Clash.DSP.FIR.Filter
 import Clash.DSP.CORDIC
 
+{-
+ - from scipy import signal
+ - signal.firwin(29, 0.5)
+ -}
 coeffsHalfBand :: Vec 8 (SFixed 1 17)
 coeffsHalfBand = $(listToVecTH [
-        4.103190651075981e-4,
-        -2.230264832858829e-3,
-        7.100791272333269e-3,
-        -1.7916864243313808e-2,
-        4.010704565915762e-2,
-        -9.010608634732692e-2,
-        0.3126304219791297,
+        2.23776078e-03, 
+        -5.21098854e-03,
+        1.20210608e-02, 
+        -2.45173921e-02,
+        4.70107885e-02, 
+        -9.53075386e-02,
+        3.14152600e-01,  
         0.5 :: Double
     ])
 
