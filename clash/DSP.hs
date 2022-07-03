@@ -62,7 +62,7 @@ decimateReal en dat
     $ firSystolicHalfBand macPreAddRealReal' coeffsHalfBand en dat
 
 consts' :: Vec 16 (SFixed 3 24)
-consts' = $(listToVecTH (Prelude.take 16 arctans))
+consts' = $(listToVecTH (Prelude.take 16 $ Prelude.map (/ pi) arctans))
 
 cordic 
     :: HiddenClockResetEnable dom 
