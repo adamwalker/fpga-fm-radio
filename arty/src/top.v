@@ -114,13 +114,13 @@ BUFGCE clk_ddr_buf (
   .O  (ddr_ref)
 );
 
-(* dont_touch = "true" *)(* mark_debug = "true" *)wire       tx_vld;
-(* dont_touch = "true" *)(* mark_debug = "true" *)wire [3:0] tx_dat;
-(* dont_touch = "true" *)(* mark_debug = "true" *)wire       tx_ack;
-(* dont_touch = "true" *)(* mark_debug = "true" *)wire       tx_eof;
+wire       tx_vld;
+wire [3:0] tx_dat;
+wire       tx_ack;
+wire       tx_eof;
 
-(* dont_touch = "true" *)(* mark_debug = "true" *)wire       eth_tx_en_p;
-(* dont_touch = "true" *)(* mark_debug = "true" *)wire [3:0] eth_txd_p;
+wire       eth_tx_en_p;
+wire [3:0] eth_txd_p;
 
 (* IOB = "TRUE" *) reg       eth_tx_en_pp;
 (* IOB = "TRUE" *) reg [3:0] eth_txd_pp;
@@ -169,11 +169,11 @@ rx_mac rx_mac_inst (
 //Radio
 /////////////////////////////////////////////////////////////////
 
-(* dont_touch = "true" *)(* mark_debug = "true" *) wire vld;
-(* dont_touch = "true" *)(* mark_debug = "true" *) wire eof;
-(* dont_touch = "true" *)(* mark_debug = "true" *) wire full;
+wire vld;
+wire eof;
+wire full;
 
-(* dont_touch = "true" *)(* mark_debug = "true" *)wire [3:0] dat_in;
+wire [3:0] dat_in;
 
 xpm_fifo_async#(
     .FIFO_MEMORY_TYPE("auto"), //String
