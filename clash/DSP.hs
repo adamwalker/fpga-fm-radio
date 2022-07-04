@@ -88,7 +88,7 @@ phaseDiff
     -> Signal dom (Complex a)
 phaseDiff en x = x * fmap conjugate x'
     where
-    x' = regEn undefined en x
+    x' = delayEn undefined en x
 
 fmRadio
     :: forall dom
@@ -108,9 +108,9 @@ fmRadio en x = (en5, dat)
         & decimateComplex en 
         & decimateComplex en1
         & decimateComplex en2
-        & regEn undefined en3 
+        & delayEn undefined en3 
         & phaseDiff en3 
-        & regEn undefined en3 
+        & delayEn undefined en3 
         & cordic en3
         & fmap (truncateFrac . renorm . arg)
         & decimateReal en3
@@ -121,5 +121,5 @@ fmRadio en x = (en5, dat)
     (en5 :> en4 :> en3 :> en2 :> en1 :> Nil) = postscanr (.&&.) en $ sequenceA $ unpack <$> cntr
         where
         cntr :: Signal dom (BitVector 5)
-        cntr =  regEn 0 en (cntr + 1)
+        cntr =  delayEn 0 en (cntr + 1)
 
