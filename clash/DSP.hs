@@ -7,6 +7,7 @@ import qualified Prelude
 import Data.Function
 import Data.Coerce
 
+import Clash.Counter
 import Clash.DSP.Complex
 import Clash.DSP.MAC
 import Clash.DSP.FIR.Filter
@@ -121,5 +122,5 @@ fmRadio en x = (en5, dat)
     (en5 :> en4 :> en3 :> en2 :> en1 :> Nil) = postscanr (.&&.) en $ sequenceA $ unpack <$> cntr
         where
         cntr :: Signal dom (BitVector 5)
-        cntr =  delayEn 0 en (cntr + 1)
+        cntr =  count 0 en
 
