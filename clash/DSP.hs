@@ -11,6 +11,7 @@ import Clash.DSP.Complex
 import Clash.DSP.MAC
 import Clash.DSP.FIR.Filter
 import Clash.DSP.CORDIC
+import Clash.DSP.Fixed
 
 {-
  - from scipy import signal
@@ -46,11 +47,8 @@ decimateComplex
     -> Signal dom (Complex (SFixed 1 23))
     -> Signal dom (Complex (SFixed 1 23))
 decimateComplex en dat 
-    = fmap (fmap (renorm . (resizeF :: SFixed 3 40 -> SFixed 2 22)))
+    = fmap (fmap (renorm . (truncateInt :: SFixed 3 22 -> SFixed 2 22) . truncateFrac))
     $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en dat
-
-renorm :: forall n m. (KnownNat m, KnownNat n) => SFixed (1 + n) m -> SFixed 1 (n + m)
-renorm = sf (SNat @(n + m)) . unSF 
 
 decimateReal
     :: HiddenClockResetEnable dom 
@@ -58,7 +56,7 @@ decimateReal
     -> Signal dom (SFixed 1 23)
     -> Signal dom (SFixed 1 23)
 decimateReal en dat 
-    = fmap (renorm . (resizeF :: SFixed 3 40 -> SFixed 2 22))
+    = fmap (renorm . (truncateInt :: SFixed 3 22 -> SFixed 2 22) . truncateFrac)
     $ firSystolicHalfBand macPreAddRealReal' coeffsHalfBand en dat
 
 consts' :: Vec 16 (SFixed 3 24)
@@ -106,7 +104,7 @@ fmRadio en x = (en5, dat)
 
     dat
         = x
-        & fmap (fmap (resizeF . sf (SNat @7)))
+        & fmap (fmap (extendFrac . sf (SNat @7)))
         & decimateComplex en 
         & decimateComplex en1
         & decimateComplex en2
@@ -114,10 +112,10 @@ fmRadio en x = (en5, dat)
         & phaseDiff en3 
         & regEn undefined en3 
         & cordic en3
-        & fmap (resizeF . renorm . arg)
+        & fmap (truncateFrac . renorm . arg)
         & decimateReal en3
         & decimateReal en4
-        & fmap (pack . (resizeF :: SFixed 1 23 -> SFixed 1 7))
+        & fmap (pack . truncateFrac)
 
     en1, en2, en3, en4, en5 :: Signal dom Bool
     (en5 :> en4 :> en3 :> en2 :> en1 :> Nil) = postscanr (.&&.) en $ sequenceA $ unpack <$> cntr
