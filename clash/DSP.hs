@@ -60,9 +60,6 @@ decimateReal en dat
     = fmap (renorm . (truncateInt :: SFixed 3 22 -> SFixed 2 22) . truncateFrac)
     $ firSystolicHalfBand macPreAddRealReal' coeffsHalfBand en dat
 
-consts' :: Vec 16 (SFixed 1 24)
-consts' = $(listToVecTH (Prelude.take 16 $ Prelude.map (/ pi) arctans))
-
 cordic 
     :: HiddenClockResetEnable dom 
     => Signal dom Bool
@@ -73,7 +70,7 @@ cordic en cplxPart
     where 
 
     consts :: Vec 16 (Vec 1 (SFixed 1 24))
-    consts = unconcatI consts'
+    consts = unconcatI $ $(listToVecTH (Prelude.take 16 $ Prelude.map (/ pi) arctans))
 
 phaseDiff
     :: HiddenClockResetEnable dom
