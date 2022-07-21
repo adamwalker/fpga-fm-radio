@@ -82,9 +82,9 @@ phaseDiff
     => Signal dom Bool
     -> Signal dom (Complex a)
     -> Signal dom (Complex a)
-phaseDiff en x = x * fmap conjugate x'
+phaseDiff en x = x * xD'
     where
-    x' = delayEn undefined en x
+    xD' = delayEn undefined en $ conjugate <$> x
 
 fmRadio
     :: forall dom
