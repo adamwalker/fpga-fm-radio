@@ -60,24 +60,19 @@ decimateReal en dat
     = fmap (renorm . (truncateInt :: SFixed 3 22 -> SFixed 2 22) . truncateFrac)
     $ firSystolicHalfBand macPreAddRealReal' coeffsHalfBand en dat
 
-consts' :: Vec 16 (SFixed 3 24)
+consts' :: Vec 16 (SFixed 1 24)
 consts' = $(listToVecTH (Prelude.take 16 $ Prelude.map (/ pi) arctans))
 
 cordic 
     :: HiddenClockResetEnable dom 
     => Signal dom Bool
     -> Signal dom (Complex (SFixed 1 23))
-    -> Signal dom (CordicState (SFixed 1 23) (SFixed 3 24))
+    -> Signal dom (SFixed 1 24) 
 cordic en cplxPart 
-    = cordicPipeline dirMagPhase (0 :: Index 16) consts en initialState
+    = snd <$> toPolar consts en cplxPart
     where 
 
-    initialState 
-        =   CordicState 
-        <$> cplxPart 
-        <*> pure (0 :: SFixed 3 24)
-
-    consts :: Vec 8 (Vec 2 (SFixed 3 24))
+    consts :: Vec 16 (Vec 1 (SFixed 1 24))
     consts = unconcatI consts'
 
 phaseDiff
@@ -113,7 +108,7 @@ fmRadio en x = (en5, dat)
         & phaseDiff en3 
         & delayEn undefined en3 
         & cordic en3
-        & fmap (truncateFrac . renorm . arg)
+        & fmap (truncateFrac . renorm)
         & decimateReal en3
         & decimateReal en4
         & fmap (pack . truncateFrac)
