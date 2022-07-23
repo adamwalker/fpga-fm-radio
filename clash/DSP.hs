@@ -7,7 +7,6 @@ import qualified Prelude
 import Data.Function
 import Data.Coerce
 
-import Clash.Counter
 import Clash.DSP.Complex
 import Clash.DSP.MAC
 import Clash.DSP.FIR.Filter
@@ -19,24 +18,8 @@ import Clash.DSP.FIR.HalfBand
  - from scipy import signal
  - signal.firwin(29, 0.5)
  -}
-coeffsHalfBand :: Vec 8 (SFixed 1 17)
-coeffsHalfBand = $(listToVecTH [
-        2.23776078e-03, 
-        -5.21098854e-03,
-        1.20210608e-02, 
-        -2.45173921e-02,
-        4.70107885e-02, 
-        -9.53075386e-02,
-        3.14152600e-01,  
-        0.5 :: Double
-    ])
-
-{-
- - from scipy import signal
- - signal.firwin(29, 0.5)
- -}
-coeffsHalfBand2 :: Vec 32 (SFixed 1 17)
-coeffsHalfBand2 = $(listToVecTH $ Prelude.map (*2) [
+coeffsHalfBand :: Vec 32 (SFixed 1 17)
+coeffsHalfBand = $(listToVecTH $ Prelude.map (*2) [
     -4.07163435e-04,  4.43611207e-04,
     -5.06181165e-04,  5.97149189e-04,
     -7.18882587e-04,  8.73864646e-04,
@@ -54,37 +37,6 @@ coeffsHalfBand2 = $(listToVecTH $ Prelude.map (*2) [
     -4.42675757e-02,  6.28091690e-02,
     -1.05616750e-01,  3.18259237e-01 :: Double
     ])
-
-
--- | Real * Real multiply and accumulate with pre-add
-macPreAddRealReal' 
-    :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
-    => MACPreAdd dom (SFixed 1 a) (SFixed 1 b) (SFixed (c + 3) (a + b))
-macPreAddRealReal' = coerce macPreAddRealRealPipelined
-
--- | Real * Complex multiply and accumulate with pre add. Designed to use the intermediate pipeline registers in Xilinx DSP48s.
-macPreAddRealComplexPipelined'
-    :: (HiddenClockResetEnable dom, KnownNat a, KnownNat b, KnownNat c) 
-    => MACPreAdd dom (SFixed 1 a) (Complex (SFixed 1 b)) (Complex (SFixed (c + 3) (a + b)))
-macPreAddRealComplexPipelined' = coerce macPreAddRealComplexPipelined
-
-decimateComplex
-    :: HiddenClockResetEnable dom 
-    => Signal dom Bool 
-    -> Signal dom (Complex (SFixed 1 23))
-    -> Signal dom (Complex (SFixed 1 23))
-decimateComplex en dat 
-    = fmap (fmap (renorm . (truncateInt :: SFixed 3 22 -> SFixed 2 22) . truncateFrac))
-    $ firSystolicHalfBand macPreAddRealComplexPipelined' coeffsHalfBand en dat
-
-decimateReal
-    :: HiddenClockResetEnable dom 
-    => Signal dom Bool 
-    -> Signal dom (SFixed 1 23)
-    -> Signal dom (SFixed 1 23)
-decimateReal en dat 
-    = fmap (renorm . (truncateInt :: SFixed 3 22 -> SFixed 2 22) . truncateFrac)
-    $ firSystolicHalfBand macPreAddRealReal' coeffsHalfBand en dat
 
 cordic 
     :: HiddenClockResetEnable dom 
@@ -109,7 +61,32 @@ phaseDiff en x = x * xD'
     where
     xD' = delayEn undefined en $ conjugate <$> x
 
-decimateComplex2
+decimateReal
+    :: HiddenClockResetEnable dom
+    => Signal dom Bool
+    -> Signal dom (SFixed 1 23)
+    -> (
+        Signal dom Bool, 
+        Signal dom (SFixed 1 23), 
+        Signal dom Bool
+        )
+decimateReal valid sampleIn = (
+        validOut, 
+        truncateFrac . renorm <$> sampleOut, 
+        ready
+    )
+    where
+  
+    (validOut, sampleOut, ready)  
+        = halfBandDecimate 
+            (coerce macPreAddRealRealPipelined) 
+            (SNat @2) 
+            (resizeF :: SFixed 1 23 -> SFixed 5 40) 
+            (singleton coeffsHalfBand) 
+            valid 
+            sampleIn
+
+decimateComplex
     :: (HiddenClockResetEnable dom, KnownNat coeffsPerStage, KnownNat numStages)
     => 1 <= (coeffsPerStage + (numStages + (numStages * coeffsPerStage)))
     => Vec (numStages + 1) (Vec (coeffsPerStage + 1) (SFixed 1 17))
@@ -120,7 +97,7 @@ decimateComplex2
         Signal dom (Complex (SFixed 1 23)), 
         Signal dom Bool
         )
-decimateComplex2 coeffs valid sampleIn = (
+decimateComplex coeffs valid sampleIn = (
         validOut, 
         fmap (truncateFrac . renorm) <$> sampleOut, 
         ready
@@ -133,31 +110,6 @@ decimateComplex2 coeffs valid sampleIn = (
             (SNat @2) 
             (fmap (resizeF :: SFixed 1 23 -> SFixed 5 40))
             coeffs 
-            valid 
-            sampleIn
-
-decimateReal2
-    :: HiddenClockResetEnable dom
-    => Signal dom Bool
-    -> Signal dom (SFixed 1 23)
-    -> (
-        Signal dom Bool, 
-        Signal dom (SFixed 1 23), 
-        Signal dom Bool
-        )
-decimateReal2 valid sampleIn = (
-        validOut, 
-        truncateFrac . renorm <$> sampleOut, 
-        ready
-    )
-    where
-  
-    (validOut, sampleOut, ready)  
-        = halfBandDecimate 
-            (coerce macPreAddRealRealPipelined) 
-            (SNat @2) 
-            (resizeF :: SFixed 1 23 -> SFixed 5 40) 
-            (singleton coeffsHalfBand2) 
             valid 
             sampleIn
 
@@ -174,9 +126,9 @@ fmRadio en x = (valid5, dat)
     where
 
     sample0 = fmap (fmap (extendFrac . sf (SNat @7))) x
-    (valid1, sample1,  _ready1) = decimateComplex2 (unconcatI coeffsHalfBand2 :: Vec 4 (Vec 8  (SFixed 1 17))) en sample0
-    (valid2, sample2,  _ready2) = decimateComplex2 (unconcatI coeffsHalfBand2 :: Vec 2 (Vec 16 (SFixed 1 17))) valid1 sample1
-    (valid3, sample3a, _ready3) = decimateComplex2 (unconcatI coeffsHalfBand2 :: Vec 1 (Vec 32 (SFixed 1 17))) valid2 sample2
+    (valid1, sample1,  _ready1) = decimateComplex (unconcatI coeffsHalfBand :: Vec 4 (Vec 8  (SFixed 1 17))) en     sample0
+    (valid2, sample2,  _ready2) = decimateComplex (unconcatI coeffsHalfBand :: Vec 2 (Vec 16 (SFixed 1 17))) valid1 sample1
+    (valid3, sample3a, _ready3) = decimateComplex (unconcatI coeffsHalfBand :: Vec 1 (Vec 32 (SFixed 1 17))) valid2 sample2
 
     sample3
         = sample3a
@@ -186,8 +138,9 @@ fmRadio en x = (valid5, dat)
         & cordic valid3
         & fmap (truncateFrac . renorm)
 
-    (valid4, sample4, _ready4) = decimateReal2 valid3 sample3
-    (valid5, sample5, _ready5) = decimateReal2 valid4 sample4
+    (valid4, sample4, _ready4) = decimateReal valid3 sample3
+    (valid5, sample5, _ready5) = decimateReal valid4 sample4
 
     dat = sample5
         & fmap (pack . truncateFrac)
+
