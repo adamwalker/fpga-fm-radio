@@ -81,7 +81,7 @@ decimateReal valid sampleIn = (
         = halfBandDecimate 
             (coerce macPreAddRealRealPipelined) 
             (SNat @2) 
-            (resizeF :: SFixed 1 23 -> SFixed 5 40) 
+            (resizeF :: SFixed 1 23 -> SFixed 3 40) 
             (singleton coeffsHalfBand) 
             valid 
             sampleIn
@@ -108,7 +108,7 @@ decimateComplex coeffs valid sampleIn = (
         = halfBandDecimate 
             (coerce macPreAddRealComplexPipelined) 
             (SNat @2) 
-            (fmap (resizeF :: SFixed 1 23 -> SFixed 5 40))
+            (fmap (resizeF :: SFixed 1 23 -> SFixed 3 40))
             coeffs 
             valid 
             sampleIn
