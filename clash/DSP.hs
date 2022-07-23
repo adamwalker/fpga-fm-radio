@@ -135,6 +135,32 @@ decimateComplex2 coeffs valid sampleIn = (
             coeffs 
             valid 
             sampleIn
+
+decimateReal2
+    :: HiddenClockResetEnable dom
+    => Signal dom Bool
+    -> Signal dom (SFixed 1 23)
+    -> (
+        Signal dom Bool, 
+        Signal dom (SFixed 1 23), 
+        Signal dom Bool
+        )
+decimateReal2 valid sampleIn = (
+        validOut, 
+        truncateFrac . renorm <$> sampleOut, 
+        ready
+    )
+    where
+  
+    (validOut, sampleOut, ready)  
+        = halfBandDecimate 
+            (coerce macPreAddRealRealPipelined) 
+            (SNat @2) 
+            (resizeF :: SFixed 1 23 -> SFixed 5 40) 
+            (singleton coeffsHalfBand2) 
+            valid 
+            sampleIn
+
 fmRadio
     :: forall dom
     .  HiddenClockResetEnable dom 
@@ -144,7 +170,7 @@ fmRadio
             Signal dom Bool, 
             Signal dom (BitVector 8)
         )
-fmRadio en x = (en5, dat)
+fmRadio en x = (valid5, dat)
     where
 
     sample0 = fmap (fmap (extendFrac . sf (SNat @7))) x
@@ -152,20 +178,16 @@ fmRadio en x = (en5, dat)
     (valid2, sample2,  _ready2) = decimateComplex2 (unconcatI coeffsHalfBand2 :: Vec 2 (Vec 16 (SFixed 1 17))) valid1 sample1
     (valid3, sample3a, _ready3) = decimateComplex2 (unconcatI coeffsHalfBand2 :: Vec 1 (Vec 32 (SFixed 1 17))) valid2 sample2
 
-    dat
+    sample3
         = sample3a
         & delayEn undefined valid3 
         & phaseDiff valid3 
         & delayEn undefined valid3 
         & cordic valid3
         & fmap (truncateFrac . renorm)
-        & decimateReal valid3
-        & decimateReal en4
+
+    (valid4, sample4, _ready4) = decimateReal2 valid3 sample3
+    (valid5, sample5, _ready5) = decimateReal2 valid4 sample4
+
+    dat = sample5
         & fmap (pack . truncateFrac)
-
-    en4, en5 :: Signal dom Bool
-    (en5 :> en4 :> Nil) = postscanr (.&&.) valid3 $ sequenceA $ unpack <$> cntr
-        where
-        cntr :: Signal dom (BitVector 2)
-        cntr =  count 0 valid3
-
