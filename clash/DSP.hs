@@ -13,6 +13,7 @@ import Clash.DSP.FIR.Filter
 import Clash.DSP.CORDIC
 import Clash.DSP.Fixed
 import Clash.DSP.FIR.HalfBand
+import Clash.DSP.FIR.SemiParallel
 
 {-
  - from scipy import signal
@@ -36,6 +37,26 @@ coeffsHalfBand = $(listToVecTH $ Prelude.map (*2) [
     -2.70541552e-02,  3.38191101e-02,
     -4.42675757e-02,  6.28091690e-02,
     -1.05616750e-01,  3.18259237e-01 :: Double
+    ])
+
+coeffsAudioFilter :: Vec 64 (SFixed 1 17)
+coeffsAudioFilter = $(listToVecTH [
+    -3.11904936e-18, -3.83788710e-04,  5.62884971e-04, -4.18144062e-04,
+     1.23074420e-18,  4.77121960e-04, -7.30457735e-04,  5.62867628e-04,
+     1.71043836e-18, -6.77612469e-04,  1.05583205e-03, -8.23697209e-04,
+     1.07099587e-17,  1.00360276e-03, -1.56562171e-03,  1.21999092e-03,
+    -8.37195269e-18, -1.47575772e-03,  2.29016883e-03, -1.77410317e-03,
+     1.34080781e-18,  2.11862266e-03, -3.26606705e-03,  2.51342706e-03,
+    -4.16345434e-17, -2.96330165e-03,  4.54050365e-03, -3.47391843e-03,
+     3.64163811e-17,  4.05212259e-03, -6.17887364e-03,  4.70632445e-03,
+    -2.10535832e-17, -5.44704415e-03,  8.27865903e-03, -6.28768224e-03,
+    -9.36512814e-18,  7.24563309e-03, -1.09962437e-02,  8.34393245e-03,
+    -2.79168321e-17, -9.61376375e-03,  1.46030299e-02, -1.10983953e-02,
+     9.10055003e-17,  1.28596017e-02, -1.96163171e-02,  1.49886155e-02,
+    -3.37352136e-17, -1.76258347e-02,  2.71543135e-02, -2.09987181e-02,
+     3.59656030e-17,  2.55010112e-02, -4.01426544e-02,  3.18775989e-02,
+    -3.76229319e-17, -4.17262315e-02,  6.93458210e-02, -5.92033760e-02,
+     3.86435099e-17,  9.95534292e-02, -2.11771303e-01,  2.99988387e-01 :: Double
     ])
 
 cordic 
@@ -113,6 +134,32 @@ decimateComplex coeffs valid sampleIn = (
             valid 
             sampleIn
 
+filterReal
+    :: HiddenClockResetEnable dom
+    => Signal dom Bool
+    -> Signal dom (SFixed 1 23)
+    -> (
+        Signal dom Bool, 
+        Signal dom (SFixed 1 23), 
+        Signal dom Bool
+        )
+filterReal valid sampleIn = (
+        validOut, 
+        truncateFrac . renorm <$> sampleOut, 
+        ready
+    )
+    where
+  
+    (validOut, sampleOut, ready)  
+        = semiParallelFIRSystolicSymmetric 
+            (coerce macPreAddRealRealPipelined) 
+            (oddSymmAccum (SNat @2) (resizeF :: SFixed 1 23 -> SFixed 3 40))
+            (SNat @2)
+            (singleton coeffsAudioFilter) 
+            (pure 0)
+            valid 
+            sampleIn
+
 fmRadio
     :: forall dom
     .  HiddenClockResetEnable dom 
@@ -122,7 +169,7 @@ fmRadio
             Signal dom Bool, 
             Signal dom (BitVector 8)
         )
-fmRadio en x = (valid5, dat)
+fmRadio en x = (valid6, dat)
     where
 
     sample0 = fmap (fmap (extendFrac . sf (SNat @7))) x
@@ -140,7 +187,8 @@ fmRadio en x = (valid5, dat)
 
     (valid4, sample4, _ready4) = decimateReal valid3 sample3
     (valid5, sample5, _ready5) = decimateReal valid4 sample4
+    (valid6, sample6, _ready6) = filterReal   valid5 sample5
 
-    dat = sample5
+    dat = sample6
         & fmap (pack . truncateFrac)
 
