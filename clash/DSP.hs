@@ -76,11 +76,11 @@ phaseDiff
     => Num a
     => NFDataX a
     => Signal dom Bool
-    -> Signal dom (Complex a)
-    -> Signal dom (Complex a)
-phaseDiff en x = x * xD'
+    -> Signal dom a
+    -> Signal dom a
+phaseDiff en x = x - xD
     where
-    xD' = delayEn undefined en $ conjugate <$> x
+    xD = delayEn undefined en x
 
 decimateReal
     :: HiddenClockResetEnable dom
@@ -180,9 +180,9 @@ fmRadio en x = (valid6, dat)
     sample3
         = sample3a
         & delayEn undefined valid3 
-        & phaseDiff valid3 
-        & delayEn undefined valid3 
         & cordic valid3
+        & delayEn undefined valid3 
+        & fmap (sf (SNat @23)) . phaseDiff valid3 . fmap unSF
         & fmap (truncateFrac . renorm)
 
     (valid4, sample4, _ready4) = decimateReal valid3 sample3
