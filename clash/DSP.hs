@@ -102,7 +102,7 @@ decimateReal valid sampleIn = (
         = halfBandDecimate 
             (coerce macPreAddRealRealPipelined) 
             (SNat @2) 
-            (resizeF :: SFixed 1 23 -> SFixed 3 40) 
+            (extendIntFrac :: SFixed 1 23 -> SFixed 3 40) 
             (singleton coeffsHalfBand) 
             valid 
             sampleIn
@@ -129,7 +129,7 @@ decimateComplex coeffs valid sampleIn = (
         = halfBandDecimate 
             (coerce macPreAddRealComplexPipelined) 
             (SNat @2) 
-            (fmap (resizeF :: SFixed 1 23 -> SFixed 3 40))
+            (fmap (extendIntFrac :: SFixed 1 23 -> SFixed 3 40))
             coeffs 
             valid 
             sampleIn
@@ -153,7 +153,7 @@ filterReal valid sampleIn = (
     (validOut, sampleOut, ready)  
         = semiParallelFIRSystolicSymmetric 
             (coerce macPreAddRealRealPipelined) 
-            (oddSymmAccum (SNat @2) (resizeF :: SFixed 1 23 -> SFixed 3 40))
+            (oddSymmAccum (SNat @2) (extendIntFrac :: SFixed 1 23 -> SFixed 3 40))
             (SNat @2)
             (singleton coeffsAudioFilter) 
             (pure 0)
