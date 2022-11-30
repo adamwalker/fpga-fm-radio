@@ -86,15 +86,15 @@ phaseDiff en x = x - xD
 decimateReal
     :: HiddenClockResetEnable dom
     => Signal dom Bool
-    -> Signal dom (SFixed 1 23)
+    -> Signal dom (Wrapping (SFixed 1 23))
     -> (
         Signal dom Bool, 
-        Signal dom (SFixed 1 23), 
+        Signal dom (Wrapping (SFixed 1 23)), 
         Signal dom Bool
         )
 decimateReal valid sampleIn = (
         validOut, 
-        truncateFrac . renorm <$> sampleOut, 
+        toWrapping . truncateFrac . renorm . fromWrapping <$> sampleOut, 
         ready
     )
     where
@@ -103,8 +103,8 @@ decimateReal valid sampleIn = (
         = halfBandDecimate 
             (coerce macPreAddRealRealPipelined) 
             (SNat @2) 
-            (extendIntFrac :: SFixed 1 23 -> SFixed 3 40) 
-            (singleton coeffsHalfBand) 
+            (toWrapping . (extendIntFrac :: SFixed 1 23 -> SFixed 3 40) . fromWrapping)
+            (singleton (map toWrapping coeffsHalfBand))
             valid 
             sampleIn
 
@@ -186,9 +186,9 @@ fmRadio en x = (valid6, dat)
         & fmap (sf (SNat @23)) . phaseDiff valid3 . fmap unSF
         & fmap (truncateFrac . renorm)
 
-    (valid4, sample4, _ready4) = decimateReal valid3 sample3
+    (valid4, sample4, _ready4) = decimateReal valid3 (fmap toWrapping sample3)
     (valid5, sample5, _ready5) = decimateReal valid4 sample4
-    (valid6, sample6, _ready6) = filterReal   valid5 sample5
+    (valid6, sample6, _ready6) = filterReal   valid5 (fmap fromWrapping sample5)
 
     dat = sample6
         & fmap (pack . truncateFrac)
