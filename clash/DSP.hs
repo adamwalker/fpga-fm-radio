@@ -63,13 +63,13 @@ coeffsAudioFilter = $(listToVecTH [
 cordic 
     :: HiddenClockResetEnable dom 
     => Signal dom Bool
-    -> Signal dom (Complex (SFixed 1 23))
-    -> Signal dom (SFixed 1 24) 
+    -> Signal dom (Complex (Wrapping (SFixed 1 23)))
+    -> Signal dom (Wrapping (SFixed 1 24))
 cordic en cplxPart 
     = snd <$> toPolar consts en cplxPart
     where 
 
-    consts :: Vec 16 (Vec 1 (SFixed 1 24))
+    consts :: Vec 16 (Vec 1 (Wrapping (SFixed 1 24)))
     consts = unconcatI $ $(listToVecTH (Prelude.take 16 $ Prelude.map (/ pi) arctans))
 
 phaseDiff
@@ -179,14 +179,14 @@ fmRadio en x = (valid6, dat)
     (valid3, sample3a, _ready3) = decimateComplex (unconcatI coeffsHalfBand :: Vec 1 (Vec 32 (Wrapping (SFixed 1 17)))) valid2 sample2
 
     sample3
-        = (fmap (fmap fromWrapping) sample3a)
+        = sample3a
         & delayEn undefined valid3 
         & cordic valid3
         & delayEn undefined valid3 
-        & fmap (sf (SNat @23)) . phaseDiff valid3 . fmap unSF
-        & fmap (truncateFrac . renorm)
+        & fmap (toWrapping . sf (SNat @23)) . phaseDiff valid3 . fmap (unSF . fromWrapping)
+        & fmap (toWrapping . truncateFrac . renorm . fromWrapping)
 
-    (valid4, sample4, _ready4) = decimateReal valid3 (fmap toWrapping sample3)
+    (valid4, sample4, _ready4) = decimateReal valid3 sample3
     (valid5, sample5, _ready5) = decimateReal valid4 sample4
     (valid6, sample6, _ready6) = filterReal   valid5 sample5
 
