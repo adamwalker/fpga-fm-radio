@@ -64,12 +64,12 @@ cordic
     :: HiddenClockResetEnable dom 
     => Signal dom Bool
     -> Signal dom (Complex (Wrapping (SFixed 1 23)))
-    -> Signal dom (Wrapping (SFixed 1 24))
+    -> Signal dom (Wrapping (SFixed 1 23))
 cordic en cplxPart 
     = snd <$> toPolar consts en cplxPart
     where 
 
-    consts :: Vec 16 (Vec 1 (Wrapping (SFixed 1 24)))
+    consts :: Vec 16 (Vec 1 (Wrapping (SFixed 1 23)))
     consts = unconcatI $ $(listToVecTH (Prelude.take 16 $ Prelude.map (/ pi) arctans))
 
 phaseDiff
@@ -183,8 +183,7 @@ fmRadio en x = (valid6, dat)
         & delayEn undefined valid3 
         & cordic valid3
         & delayEn undefined valid3 
-        & fmap (toWrapping . sf (SNat @23)) . phaseDiff valid3 . fmap (unSF . fromWrapping)
-        & fmap (toWrapping . truncateFrac . renorm . fromWrapping)
+        & phaseDiff valid3
 
     (valid4, sample4, _ready4) = decimateReal valid3 sample3
     (valid5, sample5, _ready5) = decimateReal valid4 sample4
