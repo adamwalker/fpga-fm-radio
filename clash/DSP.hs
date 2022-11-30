@@ -3,6 +3,7 @@ module DSP (
     ) where
 
 import Clash.Prelude
+import Clash.Num.Wrapping
 import qualified Prelude
 import Data.Function
 import Data.Coerce
@@ -112,15 +113,15 @@ decimateComplex
     => 1 <= (coeffsPerStage + (numStages + (numStages * coeffsPerStage)))
     => Vec (numStages + 1) (Vec (coeffsPerStage + 1) (SFixed 1 17))
     -> Signal dom Bool
-    -> Signal dom (Complex (SFixed 1 23))
+    -> Signal dom (Complex (Wrapping (SFixed 1 23)))
     -> (
         Signal dom Bool, 
-        Signal dom (Complex (SFixed 1 23)), 
+        Signal dom (Complex (Wrapping (SFixed 1 23))), 
         Signal dom Bool
         )
 decimateComplex coeffs valid sampleIn = (
         validOut, 
-        fmap (truncateFrac . renorm) <$> sampleOut, 
+        fmap (toWrapping . truncateFrac . renorm . fromWrapping) <$> sampleOut, 
         ready
     )
     where
@@ -129,8 +130,8 @@ decimateComplex coeffs valid sampleIn = (
         = halfBandDecimate 
             (coerce macPreAddRealComplexPipelined) 
             (SNat @2) 
-            (fmap (extendIntFrac :: SFixed 1 23 -> SFixed 3 40))
-            coeffs 
+            (fmap (toWrapping . (extendIntFrac :: SFixed 1 23 -> SFixed 3 40) . fromWrapping))
+            (map (map toWrapping) coeffs)
             valid 
             sampleIn
 
@@ -172,13 +173,13 @@ fmRadio
 fmRadio en x = (valid6, dat)
     where
 
-    sample0 = fmap (fmap (extendFrac . sf (SNat @7))) x
+    sample0 = fmap (fmap (toWrapping . extendFrac . sf (SNat @7))) x
     (valid1, sample1,  _ready1) = decimateComplex (unconcatI coeffsHalfBand :: Vec 4 (Vec 8  (SFixed 1 17))) en     sample0
     (valid2, sample2,  _ready2) = decimateComplex (unconcatI coeffsHalfBand :: Vec 2 (Vec 16 (SFixed 1 17))) valid1 sample1
     (valid3, sample3a, _ready3) = decimateComplex (unconcatI coeffsHalfBand :: Vec 1 (Vec 32 (SFixed 1 17))) valid2 sample2
 
     sample3
-        = sample3a
+        = (fmap (fmap fromWrapping) sample3a)
         & delayEn undefined valid3 
         & cordic valid3
         & delayEn undefined valid3 
