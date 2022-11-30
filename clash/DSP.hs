@@ -20,7 +20,7 @@ import Clash.DSP.FIR.SemiParallel
  - from scipy import signal
  - signal.firwin(29, 0.5)
  -}
-coeffsHalfBand :: Vec 32 (SFixed 1 17)
+coeffsHalfBand :: Vec 32 (Wrapping (SFixed 1 17))
 coeffsHalfBand = $(listToVecTH $ Prelude.map (*2) [
     -4.07163435e-04,  4.43611207e-04,
     -5.06181165e-04,  5.97149189e-04,
@@ -40,7 +40,7 @@ coeffsHalfBand = $(listToVecTH $ Prelude.map (*2) [
     -1.05616750e-01,  3.18259237e-01 :: Double
     ])
 
-coeffsAudioFilter :: Vec 64 (SFixed 1 17)
+coeffsAudioFilter :: Vec 64 (Wrapping (SFixed 1 17))
 coeffsAudioFilter = $(listToVecTH [
     -3.11904936e-18, -3.83788710e-04,  5.62884971e-04, -4.18144062e-04,
      1.23074420e-18,  4.77121960e-04, -7.30457735e-04,  5.62867628e-04,
@@ -104,14 +104,14 @@ decimateReal valid sampleIn = (
             (coerce macPreAddRealRealPipelined) 
             (SNat @2) 
             (toWrapping . (extendIntFrac :: SFixed 1 23 -> SFixed 3 40) . fromWrapping)
-            (singleton (map toWrapping coeffsHalfBand))
+            (singleton coeffsHalfBand)
             valid 
             sampleIn
 
 decimateComplex
     :: (HiddenClockResetEnable dom, KnownNat coeffsPerStage, KnownNat numStages)
     => 1 <= (coeffsPerStage + (numStages + (numStages * coeffsPerStage)))
-    => Vec (numStages + 1) (Vec (coeffsPerStage + 1) (SFixed 1 17))
+    => Vec (numStages + 1) (Vec (coeffsPerStage + 1) (Wrapping (SFixed 1 17)))
     -> Signal dom Bool
     -> Signal dom (Complex (Wrapping (SFixed 1 23)))
     -> (
@@ -131,7 +131,7 @@ decimateComplex coeffs valid sampleIn = (
             (coerce macPreAddRealComplexPipelined) 
             (SNat @2) 
             (fmap (toWrapping . (extendIntFrac :: SFixed 1 23 -> SFixed 3 40) . fromWrapping))
-            (map (map toWrapping) coeffs)
+            coeffs
             valid 
             sampleIn
 
@@ -156,7 +156,7 @@ filterReal valid sampleIn = (
             (coerce macPreAddRealRealPipelined) 
             (oddSymmAccum (SNat @2) (toWrapping . (extendIntFrac :: SFixed 1 23 -> SFixed 3 40) . fromWrapping))
             (SNat @2)
-            (singleton (map toWrapping coeffsAudioFilter))
+            (singleton coeffsAudioFilter)
             (pure 0)
             valid 
             sampleIn
@@ -174,9 +174,9 @@ fmRadio en x = (valid6, dat)
     where
 
     sample0 = fmap (fmap (toWrapping . extendFrac . sf (SNat @7))) x
-    (valid1, sample1,  _ready1) = decimateComplex (unconcatI coeffsHalfBand :: Vec 4 (Vec 8  (SFixed 1 17))) en     sample0
-    (valid2, sample2,  _ready2) = decimateComplex (unconcatI coeffsHalfBand :: Vec 2 (Vec 16 (SFixed 1 17))) valid1 sample1
-    (valid3, sample3a, _ready3) = decimateComplex (unconcatI coeffsHalfBand :: Vec 1 (Vec 32 (SFixed 1 17))) valid2 sample2
+    (valid1, sample1,  _ready1) = decimateComplex (unconcatI coeffsHalfBand :: Vec 4 (Vec 8  (Wrapping (SFixed 1 17)))) en     sample0
+    (valid2, sample2,  _ready2) = decimateComplex (unconcatI coeffsHalfBand :: Vec 2 (Vec 16 (Wrapping (SFixed 1 17)))) valid1 sample1
+    (valid3, sample3a, _ready3) = decimateComplex (unconcatI coeffsHalfBand :: Vec 1 (Vec 32 (Wrapping (SFixed 1 17)))) valid2 sample2
 
     sample3
         = (fmap (fmap fromWrapping) sample3a)
