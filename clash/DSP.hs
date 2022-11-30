@@ -138,15 +138,15 @@ decimateComplex coeffs valid sampleIn = (
 filterReal
     :: HiddenClockResetEnable dom
     => Signal dom Bool
-    -> Signal dom (SFixed 1 23)
+    -> Signal dom (Wrapping (SFixed 1 23))
     -> (
         Signal dom Bool, 
-        Signal dom (SFixed 1 23), 
+        Signal dom (Wrapping (SFixed 1 23)), 
         Signal dom Bool
         )
 filterReal valid sampleIn = (
         validOut, 
-        truncateFrac . renorm <$> sampleOut, 
+        toWrapping . truncateFrac . renorm . fromWrapping <$> sampleOut, 
         ready
     )
     where
@@ -154,9 +154,9 @@ filterReal valid sampleIn = (
     (validOut, sampleOut, ready)  
         = semiParallelFIRSystolicSymmetric 
             (coerce macPreAddRealRealPipelined) 
-            (oddSymmAccum (SNat @2) (extendIntFrac :: SFixed 1 23 -> SFixed 3 40))
+            (oddSymmAccum (SNat @2) (toWrapping . (extendIntFrac :: SFixed 1 23 -> SFixed 3 40) . fromWrapping))
             (SNat @2)
-            (singleton coeffsAudioFilter) 
+            (singleton (map toWrapping coeffsAudioFilter))
             (pure 0)
             valid 
             sampleIn
@@ -188,8 +188,8 @@ fmRadio en x = (valid6, dat)
 
     (valid4, sample4, _ready4) = decimateReal valid3 (fmap toWrapping sample3)
     (valid5, sample5, _ready5) = decimateReal valid4 sample4
-    (valid6, sample6, _ready6) = filterReal   valid5 (fmap fromWrapping sample5)
+    (valid6, sample6, _ready6) = filterReal   valid5 sample5
 
     dat = sample6
-        & fmap (pack . truncateFrac)
+        & fmap (pack . truncateFrac . fromWrapping)
 
